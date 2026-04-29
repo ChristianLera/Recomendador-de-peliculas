@@ -1,0 +1,105 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.suo
+*.user
+*.sln
+*.dbmdl
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml
+*.streamlit/
+
+# Data (excluir archivos grandes pero mantener estructura)
+data/*.parquet
+data/*.csv
+data/*.json
+data/*.zip
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+!data/.gitkeep
+
+# Models (matrices precalculadas)
+models/*.joblib
+models/*.pkl
+models/*.npy
+!models/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.log.*
+!logs/.gitkeep
+
+# Excel exports
+exports/*.xlsx
+!exports/.gitkeep
+
+# TMDB cache (puede contener API keys en texto)
+data/tmdb_cache.json
+data/tmdb_enrichment_cache.json
+
+# User ratings (datos personales)
+data/user_ratings.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb
+
+# pytest
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+*.cover
+*.py,cover
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# pytype
+.pytype/
+
+# Profiling
+.prof
+*.prof
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+*.old
