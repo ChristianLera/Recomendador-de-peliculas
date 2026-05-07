@@ -360,3 +360,7 @@ MIT License - Ver archivo [LICENSE](LICENSE)
 
 ## ⭐️ ¡No olvides darle una estrella al repo si te gustó!
 
+
+
+---
+? **Desarrollado por Christian Lera** | [GitHub](https://github.com/ChristianLera) | Proyecto de portfolio personal
