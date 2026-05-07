@@ -363,4 +363,4 @@ MIT License - Ver archivo [LICENSE](LICENSE)
 
 
 ---
-? **Desarrollado por Christian Lera** | [GitHub](https://github.com/ChristianLera) | Proyecto de portfolio personal
+**Desarrollado por Christian Lera** | [GitHub](https://github.com/ChristianLera) | Proyecto de portfolio personal
