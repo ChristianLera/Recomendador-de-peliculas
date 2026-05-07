@@ -350,11 +350,11 @@ MIT License - Ver archivo [LICENSE](LICENSE)
 
 ## 📧 Contacto
 
-**Autor**: Tu Nombre
-- **GitHub**: [@tusuario](https://github.com/tusuario)
-- **Email**: tuemail@ejemplo.com
+**Autor**: Christian Lera
+- **GitHub**: https://github.com/ChristianLera
+- **Email**: christianleraprofesional@hotmail.com
 
-**Proyecto**: [github.com/tusuario/movie-recommender](https://github.com/tusuario/movie-recommender)
+**Proyecto**: https://github.com/ChristianLera/Recomendador-de-peliculas
 
 ---
 
