@@ -1,290 +1,148 @@
-# run.ps1 - Script de gestion para Windows
-# Uso: .\run.ps1 [comando]
+# run.ps1 - Script de gestion simple
 
-param(
-    [Parameter(Position=0)]
-    [ValidateSet("install", "test", "run", "clean", "setup-data", "reset-data", "reset-models", "status", "requirements", "help")]
-    [string]$command = "help"
-)
+# Verificar y solicitar administrador
+$isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
-$ErrorActionPreference = "Continue"
-
-# Funciones de colores
-function Write-Step { Write-Host "`n===> $($args[0])" -ForegroundColor Green }
-function Write-Warning { Write-Host "WARNING: $($args[0])" -ForegroundColor Yellow }
-function Write-Error { Write-Host "ERROR: $($args[0])" -ForegroundColor Red }
-function Write-Success { Write-Host "SUCCESS: $($args[0])" -ForegroundColor Green }
-function Write-Info { Write-Host "INFO: $($args[0])" -ForegroundColor Cyan }
-
-function Test-Command {
-    param($cmd)
-    $null -ne (Get-Command $cmd -ErrorAction SilentlyContinue)
+if (-not $isAdmin) {
+    Write-Host "Solicitando permisos de Administrador..." -ForegroundColor Yellow
+    Start-Process powershell.exe "-NoExit -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
+    exit
 }
 
-function Test-ProjectRoot {
-    if (-not (Test-Path "app.py")) {
-        Write-Error "No se encuentra app.py"
-        Write-Info "Ubicacion actual: $(Get-Location)"
-        return $false
-    }
-    return $true
-}
+Clear-Host
+Write-Host ""
+Write-Host "==================================================" -ForegroundColor Magenta
+Write-Host "  SISTEMA DE RECOMENDACION DE PELICULAS" -ForegroundColor Magenta
+Write-Host "  Modo Administrador Activado" -ForegroundColor Green
+Write-Host "==================================================" -ForegroundColor Magenta
+Write-Host ""
 
-switch ($command) {
-    "install" {
-        Write-Step "Instalando dependencias..."
-        
-        if (-not (Test-Command "python")) {
-            Write-Error "Python no esta instalado"
-            Write-Info "Descarga Python desde: https://www.python.org/downloads/"
-            exit 1
-        }
-        
-        Write-Info "Python version: $(python --version)"
-        Write-Step "Actualizando pip..."
+# Menu principal
+$opcion = ""
+while ($opcion -ne "0") {
+    Write-Host ""
+    Write-Host "QUE DESEAS HACER?" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host " 1. Instalar dependencias" -ForegroundColor Green
+    Write-Host " 2. Iniciar aplicacion" -ForegroundColor Green
+    Write-Host " 3. Ejecutar tests" -ForegroundColor Green
+    Write-Host " 4. Ver estado" -ForegroundColor Green
+    Write-Host " 5. Crear directorios (setup-data)" -ForegroundColor Green
+    Write-Host " 6. Limpiar archivos temporales" -ForegroundColor Green
+    Write-Host " 7. Reiniciar datos" -ForegroundColor Green
+    Write-Host " 8. Reiniciar modelos" -ForegroundColor Green
+    Write-Host " 0. Salir" -ForegroundColor Red
+    Write-Host ""
+    
+    $opcion = Read-Host "Elige una opcion (0-8)"
+    
+    if ($opcion -eq "1") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Instalando dependencias..." -ForegroundColor Cyan
+        python --version
         python -m pip install --upgrade pip
-        Write-Step "Instalando dependencias desde requirements.txt..."
         pip install -r requirements.txt
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Dependencias instaladas correctamente"
-        } else {
-            Write-Error "Error instalando dependencias"
-            exit 1
-        }
+        Write-Host "Instalacion completada" -ForegroundColor Green
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "test" {
-        Write-Step "Ejecutando tests..."
-        
-        if (-not (Test-Command "pytest")) {
-            Write-Warning "pytest no esta instalado. Instalando..."
-            pip install pytest pytest-cov
-        }
-        
-        pytest tests/ -v --cov=src --cov-report=term-missing
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Tests completados exitosamente"
-        } else {
-            Write-Error "Algunos tests fallaron"
-            exit 1
-        }
-    }
-    
-    "run" {
-        if (-not (Test-ProjectRoot)) { exit 1 }
-        
-        Write-Step "Iniciando aplicacion Streamlit..."
-        
-        if (-not (Test-Path ".env")) {
-            Write-Warning "No se encontro archivo .env"
-            if (Test-Path ".env.example") {
-                Copy-Item ".env.example" ".env"
-                Write-Success "Archivo .env creado desde .env.example"
-            } else {
-                Write-Info "Creando archivo .env basico..."
-                $envLines = @(
-                    "# TMDB API Key - opcional para posters",
-                    "TMDB_API_KEY=",
-                    "",
-                    "# Configuracion por defecto",
-                    "DEFAULT_TOP_N=10",
-                    "DEFAULT_CONTENT_WEIGHT=0.6",
-                    "DEFAULT_COLLAB_WEIGHT=0.4",
-                    "",
-                    "# Directorios",
-                    "DATA_DIR=./data",
-                    "MODELS_DIR=./models",
-                    "LOGS_DIR=./logs"
-                )
-                $envLines -join "`r`n" | Out-File -FilePath ".env" -Encoding utf8
-                Write-Success "Archivo .env creado"
-            }
-        }
-        
+    if ($opcion -eq "2") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Iniciando aplicacion..." -ForegroundColor Cyan
         $dirs = @("data", "models", "logs", "exports")
         foreach ($dir in $dirs) {
             if (-not (Test-Path $dir)) {
                 New-Item -ItemType Directory -Force -Path $dir | Out-Null
-                Write-Info "Directorio creado: $dir"
             }
         }
-        
-        Write-Info "Abriendo http://localhost:8501 en tu navegador..."
-        Write-Warning "Presiona Ctrl+C para detener la aplicacion"
-        Write-Host ""
-        
-        if (Test-Command "streamlit") {
-            streamlit run app.py --server.port 8501 --server.address localhost
-        } else {
-            python -m streamlit run app.py --server.port 8501 --server.address localhost
-        }
-        
-        if ($LASTEXITCODE -ne 0) {
-            Write-Error "Error al iniciar Streamlit"
-            exit 1
-        }
+        Write-Host "Abriendo http://localhost:8501" -ForegroundColor Green
+        streamlit run app.py --server.port 8501 --server.address localhost
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "clean" {
-        Write-Step "Limpiando archivos temporales..."
-        
-        Get-ChildItem -Path . -Include "__pycache__" -Recurse -Force -ErrorAction SilentlyContinue | 
-            Where-Object { $_.FullName -notlike "*\venv\*" } | 
-            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-        Write-Info "Eliminados: __pycache__"
-        
-        $tempItems = @(".pytest_cache", ".coverage", "htmlcov", ".mypy_cache")
-        foreach ($item in $tempItems) {
-            if (Test-Path $item) {
-                Remove-Item -Recurse -Force $item -ErrorAction SilentlyContinue
-                Write-Info "Eliminado: $item"
-            }
-        }
-        
-        Write-Success "Limpieza completada"
+    if ($opcion -eq "3") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Ejecutando tests..." -ForegroundColor Cyan
+        pip install pytest pytest-cov
+        pytest tests/ -v
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "setup-data" {
-        Write-Step "Creando estructura de directorios..."
-        
-        $directories = @("data", "models", "logs", "exports")
-        foreach ($dir in $directories) {
-            if (-not (Test-Path $dir)) {
-                New-Item -ItemType Directory -Force -Path $dir | Out-Null
-                Write-Info "Directorio creado: $dir"
+    if ($opcion -eq "4") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Estado del proyecto:" -ForegroundColor Cyan
+        python --version
+        Write-Host "" -ForegroundColor Yellow
+        Write-Host "Directorios:" -ForegroundColor Yellow
+        $dirs = @("data", "models", "logs", "exports")
+        foreach ($dir in $dirs) {
+            if (Test-Path $dir) {
+                Write-Host "  [OK] $dir/ existe" -ForegroundColor Green
             } else {
-                Write-Info "Directorio ya existe: $dir"
+                Write-Host "  [NO] $dir/ no existe" -ForegroundColor Red
             }
         }
-        
-        Write-Success "Estructura de directorios lista"
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "reset-data" {
-        Write-Step "Reiniciando datos de MovieLens..."
-        Write-Warning "Esto eliminara los datos descargados de MovieLens"
-        
-        $confirm = Read-Host "¿Estas seguro? s/N"
-        if ($confirm -ne "s" -and $confirm -ne "S") {
-            Write-Info "Operacion cancelada"
-            exit 0
+    if ($opcion -eq "5") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Creando directorios..." -ForegroundColor Cyan
+        $dirs = @("data", "models", "logs", "exports")
+        foreach ($dir in $dirs) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+            Write-Host "  Creado: $dir/" -ForegroundColor Green
         }
-        
-        $dataFiles = @(
-            "data/movielens_movies.parquet",
-            "data/movielens_ratings.parquet",
-            "data/ml-latest-small.zip",
-            "data/tmdb_cache.json",
-            "data/tmdb_enrichment_cache.json",
-            "data/user_ratings.json"
-        )
-        
-        foreach ($file in $dataFiles) {
-            if (Test-Path $file) {
-                Remove-Item -Force $file -ErrorAction SilentlyContinue
-                Write-Info "Eliminado: $file"
-            }
-        }
-        
-        if (Test-Path "data/ml-latest-small") {
-            Remove-Item -Recurse -Force "data/ml-latest-small" -ErrorAction SilentlyContinue
-            Write-Info "Eliminado: data/ml-latest-small"
-        }
-        
-        Write-Success "Datos reiniciados"
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "reset-models" {
-        Write-Step "Reiniciando modelos matrices de similitud..."
-        Write-Warning "Esto eliminara las matrices precalculadas"
-        
-        $confirm = Read-Host "¿Estas seguro? s/N"
-        if ($confirm -ne "s" -and $confirm -ne "S") {
-            Write-Info "Operacion cancelada"
-            exit 0
-        }
-        
-        Get-ChildItem -Path "models" -Filter "*.joblib" -ErrorAction SilentlyContinue | ForEach-Object {
-            Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue
-            Write-Info "Eliminado: models/$($_.Name)"
-        }
-        
-        Write-Success "Modelos reiniciados"
+    if ($opcion -eq "6") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Limpiando archivos temporales..." -ForegroundColor Cyan
+        Get-ChildItem -Path . -Include "__pycache__" -Recurse -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "Limpieza completada" -ForegroundColor Green
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "status" {
-        Write-Step "Estado del proyecto"
-        
-        if (Test-Command "python") {
-            Write-Success "Python: $(python --version)"
-        } else {
-            Write-Error "Python: No instalado"
+    if ($opcion -eq "7") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Reiniciando datos..." -ForegroundColor Cyan
+        $confirm = Read-Host "Esta seguro? (s/N)"
+        if ($confirm -eq "s") {
+            Remove-Item -Path "data/*" -Recurse -Force -ErrorAction SilentlyContinue
+            Write-Host "Datos eliminados" -ForegroundColor Green
         }
-        
-        Write-Step "Directorios:"
-        @("data", "models", "logs", "exports") | ForEach-Object {
-            if (Test-Path $_) { Write-Success "  $_/ existe" }
-            else { Write-Warning "  $_/ no existe ejecuta setup-data" }
-        }
-        
-        Write-Step "Configuracion:"
-        if (Test-Path ".env") {
-            Write-Success "  .env existe"
-        } else {
-            Write-Warning "  .env no existe"
-        }
-        
-        Write-Success "Estado verificado"
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "requirements" {
-        Write-Step "Exportando requirements.txt actual..."
-        pip freeze > requirements.freeze.txt
-        Write-Success "Requirements exportados a requirements.freeze.txt"
+    if ($opcion -eq "8") {
+        Write-Host "" -ForegroundColor Cyan
+        Write-Host "Reiniciando modelos..." -ForegroundColor Cyan
+        $confirm = Read-Host "Esta seguro? (s/N)"
+        if ($confirm -eq "s") {
+            Remove-Item -Path "models/*.joblib" -Force -ErrorAction SilentlyContinue
+            Write-Host "Modelos eliminados" -ForegroundColor Green
+        }
+        Read-Host "`nPresiona Enter para continuar"
+        Clear-Host
     }
     
-    "help" {
-        Write-Host ""
-        Write-Host "SISTEMA DE RECOMENDACION DE PELICULAS" -ForegroundColor Magenta
-        Write-Host "==================================================" -ForegroundColor Magenta
-        Write-Host ""
-        Write-Host "COMANDOS DISPONIBLES:" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "  .\run.ps1 install     - Instalar todas las dependencias" -ForegroundColor Green
-        Write-Host "  .\run.ps1 run         - Iniciar la aplicacion Streamlit" -ForegroundColor Green
-        Write-Host "  .\run.ps1 test        - Ejecutar los tests unitarios" -ForegroundColor Green
-        Write-Host "  .\run.ps1 clean       - Limpiar archivos temporales" -ForegroundColor Green
-        Write-Host "  .\run.ps1 setup-data  - Crear estructura de directorios" -ForegroundColor Green
-        Write-Host "  .\run.ps1 reset-data  - Eliminar datos descargados" -ForegroundColor Green
-        Write-Host "  .\run.ps1 reset-models- Eliminar matrices precalculadas" -ForegroundColor Green
-        Write-Host "  .\run.ps1 status      - Mostrar estado del proyecto" -ForegroundColor Green
-        Write-Host "  .\run.ps1 requirements- Exportar requirements actuales" -ForegroundColor Green
-        Write-Host "  .\run.ps1 help        - Mostrar esta ayuda" -ForegroundColor Green
-        Write-Host ""
-        Write-Host "EJEMPLOS:" -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "  Instalacion inicial:" -ForegroundColor Cyan
-        Write-Host "  .\run.ps1 setup-data" -ForegroundColor White
-        Write-Host "  .\run.ps1 install" -ForegroundColor White
-        Write-Host ""
-        Write-Host "  Ejecutar la aplicacion:" -ForegroundColor Cyan
-        Write-Host "  .\run.ps1 run" -ForegroundColor White
-        Write-Host ""
-        Write-Host "  Verificar estado:" -ForegroundColor Cyan
-        Write-Host "  .\run.ps1 status" -ForegroundColor White
-        Write-Host ""
-        Write-Host "NOTAS:" -ForegroundColor Yellow
-        Write-Host "  - La primera ejecucion descargara MovieLens unos 10MB" -ForegroundColor White
-        Write-Host "  - TMDB_API_KEY es opcional solo para posters" -ForegroundColor White
-        Write-Host "  - Los modelos se guardan en carpeta models para reutilizacion" -ForegroundColor White
-        Write-Host ""
+    if ($opcion -eq "0") {
+        Write-Host "" -ForegroundColor Magenta
+        Write-Host "Hasta luego!" -ForegroundColor Magenta
+        break
     }
     
-    default {
-        Write-Host "Comando no reconocido: $command" -ForegroundColor Red
-        Write-Host "Ejecuta '.\\run.ps1 help' para ver los comandos disponibles" -ForegroundColor Yellow
-        exit 1
+    if ($opcion -ne "0" -and $opcion -ne "1" -and $opcion -ne "2" -and $opcion -ne "3" -and $opcion -ne "4" -and $opcion -ne "5" -and $opcion -ne "6" -and $opcion -ne "7" -and $opcion -ne "8") {
+        Write-Host "Opcion no valida" -ForegroundColor Red
+        Start-Sleep -Seconds 1
+        Clear-Host
     }
 }
